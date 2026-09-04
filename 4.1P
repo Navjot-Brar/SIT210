@@ -1,0 +1,103 @@
+#include <Wire.h>
+#include <BH1750.h>
+
+BH1750 lightSensor;
+
+// These pins will operate the circuit for detecting motion.
+int PIR_PIN = 2;
+int SWITCH_PIN = 3;
+
+int LED1_PIN = 6;
+int LED2_PIN = 7;
+
+const float DARK_THRESHOLD = 50.0;
+
+// Variables used to store the interrupt status.
+volatile bool motionDetected = false;
+volatile bool switchPressed = false;
+
+// PIR sensor interrupt
+void motionISR() {
+    motionDetected = true;
+}
+
+// Switch interrupt
+void switchISR() {
+    switchPressed = true;
+}
+
+void setup() {
+    Serial.begin(9600);
+
+    Wire.begin();
+    lightSensor.begin();
+
+    pinMode(PIR_PIN, INPUT);
+    pinMode(SWITCH_PIN, INPUT_PULLUP);
+
+    pinMode(LED1_PIN, OUTPUT);
+    pinMode(LED2_PIN, OUTPUT);
+
+    // Attach interrupts for the PIR sensor and switch.
+    attachInterrupt(digitalPinToInterrupt(PIR_PIN), motionISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(SWITCH_PIN), switchISR, FALLING);
+
+    digitalWrite(LED1_PIN, LOW);
+    digitalWrite(LED2_PIN, LOW);
+}
+
+void loop() {
+
+    // Read the current light level from the BH1750 sensor.
+    float lightLevel = lightSensor.readLightLevel();
+
+    // If the environment is dark, turn the lights on.
+    if (lightLevel < DARK_THRESHOLD) {
+
+        digitalWrite(LED1_PIN, HIGH);
+        digitalWrite(LED2_PIN, HIGH);
+
+        Serial.println("Light Sensor detected - Lights ON");
+
+        delay(1000);
+
+        digitalWrite(LED1_PIN, LOW);
+        digitalWrite(LED2_PIN, LOW);
+
+    } else {
+
+        Serial.println("It is not dark - Lights OFF");
+    }
+
+    // Check whether motion was detected.
+    if (motionDetected) {
+
+        motionDetected = false;
+
+        digitalWrite(LED1_PIN, HIGH);
+        digitalWrite(LED2_PIN, HIGH);
+
+        Serial.println("Motion Detected in Dark - Lights ON");
+
+        delay(1000);
+
+        digitalWrite(LED1_PIN, LOW);
+        digitalWrite(LED2_PIN, LOW);
+    }
+
+    // Check whether the switch was pressed.
+    if (switchPressed) {
+
+        switchPressed = false;
+
+        digitalWrite(LED1_PIN, HIGH);
+        digitalWrite(LED2_PIN, HIGH);
+
+        Serial.println("Manual Switch Pressed - Lights ON");
+
+        delay(1000);
+
+        digitalWrite(LED1_PIN, LOW);
+        digitalWrite(LED2_PIN, LOW);
+    }
+}
