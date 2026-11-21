@@ -1,0 +1,53 @@
+const int pirPin = 2;
+const int ledPin = 3;
+const int buzzerPin = 4;
+
+const unsigned long alertDuration = 5000; // Alert stays ON for 5 seconds
+unsigned long alertStartTime = 0;
+bool alertActive = false;
+bool buzzerState = false;
+unsigned long lastBeepToggle = 0;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(pirPin, INPUT);
+  pinMode(ledPin, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+
+  digitalWrite(ledPin, LOW);
+  digitalWrite(buzzerPin, LOW);
+
+  Serial.println("Human Detection Alert System Ready...");
+}
+
+void loop() {
+  unsigned long now = millis();
+
+  // Check if PIR detects human motion
+  if (digitalRead(pirPin) == HIGH) {
+    if (!alertActive) {
+      Serial.println("ALERT: Human detected!");
+    }
+    alertActive = true;
+    alertStartTime = now; // Refresh alert timer on movement
+  }
+
+  // Handle alert output without freezing the loop
+  if (alertActive) {
+    digitalWrite(ledPin, HIGH);
+
+    if (now - lastBeepToggle >= 300) {
+      lastBeepToggle = now;
+      buzzerState = !buzzerState;
+      digitalWrite(buzzerPin, buzzerState ? HIGH : LOW);
+    }
+
+    if (now - alertStartTime >= alertDuration) {
+      alertActive = false;
+      buzzerState = false;
+      digitalWrite(ledPin, LOW);
+      digitalWrite(buzzerPin, LOW);
+      Serial.println("Alert cleared. Waiting for motion...");
+    }
+  }
+}
